@@ -10,7 +10,7 @@
   --ok:#1f8a5b; --warn:#d9822b; --bad:#c0392b; --tip:#2f6fb0;
 }
 @media (prefers-color-scheme:dark){
-  :root{--bg:#0e1a17; --card:#16282399; --ink:#e6f1ed; --soft:#8fa89f; --line:#2a403a; --ok:#3cc88a; --warn:#f0a050; --bad:#ec6b5c; --tip:#6aa9e8}
+  :root{--bg:#0e1a17; --card:#162823; --ink:#e6f1ed; --soft:#8fa89f; --line:#2a403a; --ok:#3cc88a; --warn:#f0a050; --bad:#ec6b5c; --tip:#6aa9e8}
 }
 *{box-sizing:border-box}
 html{font-size:16px}
@@ -50,7 +50,6 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--tip);outline-of
 .mode button{padding:9px;font-weight:600}
 .mode button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 .now{color:var(--soft);font-size:.85rem;text-align:center;margin-bottom:10px;text-transform:capitalize}
-.save-card .big2{font-size:2rem;font-weight:700}
 .save-card .sv{display:flex;align-items:center;gap:8px}
 .save-card .sv span{font-size:1.4rem;font-weight:700}
 .save-card input{font-size:1.6rem;font-weight:700}
@@ -70,11 +69,44 @@ h2{font-size:.95rem;margin:0 0 8px}
 .empty{color:var(--soft);font-size:.92rem;margin:0}
 .cfg{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .hist .h{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);font-size:.92rem;background:none;border-left:0;border-right:0;border-top:0;border-radius:0;width:100%;text-align:left}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:12px}
+.cal .hd{text-align:center;font-size:.7rem;color:var(--soft)}
+.cal button{min-height:60px;padding:4px 1px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:1px;font-size:.62rem;line-height:1.25;overflow:hidden}
+.cal button b{font-size:.8rem}
+.cal .g{color:var(--bad)} .cal .p{color:var(--tip)}
+.cal button.sel{border:2px solid var(--ink)}
+.cal button.tod b{color:var(--ok)}
+.cal .blank{visibility:hidden}
+.cal button.x{opacity:.45}.cal button.x b{text-decoration:line-through}.cal button.x b::after{content:' ✕';color:var(--bad);font-size:.65rem}.cal button.dl{border:2px solid var(--warn)}.goal{margin-top:12px;display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end}.goal button{padding:11px}.goal+p{margin:8px 0 0;font-size:.9rem}.cmode{margin:12px 0 0}
+main>section{display:none}
+body[data-v="h"] main>.vh,body[data-v="c"] main>.vc,body[data-v="s"] main>.vs,body[data-v="a"] main>.va,body[data-v="y"] main>.vy{display:block}
+.top{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:12px;margin:-16px -16px 14px;padding:10px 16px;background:var(--bg);border-bottom:1px solid var(--line)}
+.top button{width:44px;height:44px;display:grid;place-items:center;padding:0}
+.top b{font-size:1.05rem}
+#scrim{position:fixed;inset:0;background:#0007;z-index:10}
+#drawer{position:fixed;top:0;left:0;bottom:0;width:270px;max-width:80%;background:var(--card);border-right:1px solid var(--line);padding:16px;display:flex;flex-direction:column;gap:6px;z-index:20;transform:translateX(-100%);visibility:hidden;transition:transform .2s,visibility .2s}
+#drawer.open{transform:none;visibility:visible}
+#drawer h2{margin:4px 0 10px;font-size:1.1rem}
+#drawer button{text-align:left;padding:13px 12px;border:0;font-weight:600}
+#drawer button.on{background:var(--ink);color:var(--bg)}
+.mh{margin:18px 0 0;font-size:1rem;text-transform:capitalize;scroll-margin-top:70px}
+.mh small{display:block;font-weight:400;color:var(--soft);font-size:.78rem;text-transform:none}
+.calsum{display:flex;justify-content:space-between;margin:12px 0 0;font-size:.9rem}
 </style>
 </head>
-<body>
+<body data-v="h">
+<header class="top"><button id="menuBtn" aria-label="Abrir menú" aria-expanded="false"><svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" fill="none"/></svg></button><b id="vTitle">Mi semana</b></header>
+<div id="scrim" hidden></div>
+<aside id="drawer" aria-label="Menú">
+  <h2>Menú</h2>
+  <button data-go="h" class="on">🏠 Mi semana</button>
+  <button data-go="c">📅 Calendario</button>
+  <button data-go="s">💰 Dinero juntado</button>
+  <button data-go="a">⚙️ Ajustes</button>
+  <button data-go="y">🕘 Semanas anteriores</button>
+</aside>
 <main>
-  <section class="card">
+  <section class="card vh">
     <div class="now" id="now"></div>
     <div class="mode"><button id="mDia">Día</button><button id="mSem">Semana</button></div>
     <div class="nav">
@@ -84,7 +116,7 @@ h2{font-size:.95rem;margin:0 0 8px}
     </div>
   </section>
 
-  <section class="card hero">
+  <section class="card hero vh">
     <div class="lbl" id="heroLbl"></div>
     <div class="big" id="avail"></div>
     <div class="bar"><i id="fill"></i></div>
@@ -96,14 +128,21 @@ h2{font-size:.95rem;margin:0 0 8px}
     <p class="hint" id="hint"></p>
   </section>
 
-  <section class="card save-card">
+  <section class="card vc" id="calCard">
+    <div class="goal"><div><label for="dl">Fecha límite para juntar dinero</label><input id="dl" type="date"></div><button id="dlClr">Borrar tachados</button></div>
+    <p id="dlInfo"></p>
+    <div class="mode cmode"><button id="cmV">Ver día</button><button id="cmX">Tachar días</button></div>
+    <div id="cal"></div>
+  </section>
+
+  <section class="card save-card vs">
     <h2>Dinero juntado</h2>
     <div class="sv"><span>S/</span><input id="sv" type="number" inputmode="decimal" step="0.10" min="0" aria-label="Dinero juntado total"></div>
     <small id="svAt"></small>
     <small>Este dinero no se toca: no entra en tu presupuesto de la semana ni de cada día. Cambia el número cuando quieras.</small>
   </section>
 
-  <section class="card">
+  <section class="card vh">
     <div class="seg">
       <button id="tG" class="on g">Gasto</button>
       <button id="tP" class="p">Propina</button>
@@ -121,17 +160,17 @@ h2{font-size:.95rem;margin:0 0 8px}
     </div>
   </section>
 
-  <section class="card">
+  <section class="card vh">
     <h2>Gasto por día</h2>
     <div class="days" id="days"></div>
   </section>
 
-  <section class="card">
+  <section class="card vh">
     <h2 id="listT">Movimientos</h2>
     <div id="list"></div>
   </section>
 
-  <section class="card">
+  <section class="card va">
     <h2>Ajustes</h2>
     <div class="cfg">
       <div><label for="cW">Dinero de cada domingo</label><input id="cW" type="number" step="1" min="0"></div>
@@ -139,7 +178,7 @@ h2{font-size:.95rem;margin:0 0 8px}
     </div>
   </section>
 
-  <section class="card hist">
+  <section class="card hist vy">
     <h2>Semanas anteriores</h2>
     <div id="hist"></div>
   </section>
@@ -148,11 +187,12 @@ h2{font-size:.95rem;margin:0 0 8px}
 <script>
 const $ = id => document.getElementById(id);
 const KEY = 'mi-semana-v1';
-let S = {weekly:300, fare:1.5, entries:[], saved:0, savedAt:null};
+let S = {weekly:300, fare:1.5, entries:[], saved:0, savedAt:null, deadline:null, crossed:{}};
 try { const r = JSON.parse(localStorage.getItem(KEY)); if (r) S = Object.assign(S, r); } catch(e){}
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e){} };
 
 const money = n => 'S/ ' + n.toLocaleString('es-PE',{minimumFractionDigits:2,maximumFractionDigits:2});
+const short = n => n.toLocaleString('es-PE',{maximumFractionDigits:2});
 const iso = d => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 const parse = s => { const [y,m,d] = s.split('-').map(Number); return new Date(y,m-1,d); };
 const sunday = d => { const x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); x.setDate(x.getDate()-x.getDay()); return x; };
@@ -160,6 +200,7 @@ const addDays = (d,n) => { const x = new Date(d); x.setDate(x.getDate()+n); retu
 const fmt = d => d.toLocaleDateString('es-PE',{day:'numeric',month:'short'});
 const hhmm = d => String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
 const DN = ['D','L','M','M','J','V','S'];
+if (!S.dlSet && !S.deadline){ const n = new Date(); let y = n.getFullYear(); if (iso(n) > y + '-12-23') y++; S.deadline = y + '-12-23'; }
 
 const thisSunday = sunday(new Date());
 let view = new Date(thisSunday);
@@ -168,6 +209,7 @@ let day = parse(iso(new Date()));
 const setWeek = s => { view = s; day = iso(s) === iso(thisSunday) ? parse(iso(new Date())) : new Date(s); };
 let type = 'gasto';
 let tmTouched = false;
+let xmode = false;
 
 function weekData(sun){
   const a = iso(sun), b = iso(addDays(sun,6));
@@ -187,6 +229,37 @@ function dayData(d){
   const sum = t => td.filter(e => e.t === t).reduce((x,e) => x + e.a, 0);
   const tips = sum('propina'), out = sum('gasto');
   return {es: td, allow, tips, out, total: allow + tips, left: allow + tips - out, daysLeft};
+}
+
+function renderCal(){
+  const td = parse(iso(new Date())), today = iso(td), tot = {};
+  S.entries.forEach(e => { const o = tot[e.d] = tot[e.d] || {g:0,p:0}; o[e.t === 'gasto' ? 'g' : 'p'] += e.a; });
+  let a = new Date(td.getFullYear(), td.getMonth(), 1);
+  const ks = Object.keys(tot).concat(Object.keys(S.crossed)).sort();
+  if (ks.length){ const f = parse(ks[0]), fm = new Date(f.getFullYear(), f.getMonth(), 1); if (fm < a) a = fm; }
+  const dd = S.deadline ? parse(S.deadline) : new Date(td.getFullYear(), 11, 31);
+  const z = dd > td ? dd : td, end = new Date(z.getFullYear(), z.getMonth(), 1);
+  let out = '';
+  for (let c = new Date(a); c <= end; c = new Date(c.getFullYear(), c.getMonth()+1, 1)){
+    const y = c.getFullYear(), m = c.getMonth(), n = new Date(y, m+1, 0).getDate();
+    let h = DN.map(x => `<div class="hd">${x}</div>`).join('') + '<div class="blank"></div>'.repeat(c.getDay());
+    let mg = 0, mp = 0;
+    for (let i = 1; i <= n; i++){
+      const k = iso(new Date(y,m,i)), t = tot[k];
+      if (t){ mg += t.g; mp += t.p; }
+      const cls = (k === today ? 'tod ' : '') + (!xmode && mode === 'dia' && k === iso(day) ? 'sel ' : '') + (S.crossed[k] ? 'x ' : '') + (k === S.deadline ? 'dl' : '');
+      h += `<button class="${cls}" data-c="${k}"><b>${i}</b>` + (k === S.deadline ? '<span>🎯</span>' : '') + (t && t.g ? `<span class="g">−${short(t.g)}</span>` : '') + (t && t.p ? `<span class="p">+${short(t.p)}</span>` : '') + `</button>`;
+    }
+    out += `<h3 class="mh" id="mo-${y}-${m}">${c.toLocaleDateString('es-PE',{month:'long',year:'numeric'})}<small>Gastado ${money(mg)} · Propinas ${money(mp)}</small></h3><div class="cal">${h}</div>`;
+  }
+  $('cal').innerHTML = out;
+  $('cmV').className = xmode ? '' : 'on'; $('cmX').className = xmode ? 'on' : '';
+  let info = 'Elige una fecha límite para ir tachando los días.';
+  if (S.deadline){
+    const left = Math.round((dd - td) / 864e5), nx = Object.keys(S.crossed).filter(k => S.crossed[k]).length;
+    info = (left < 0 ? 'La fecha límite ya pasó.' : left === 0 ? '¡Hoy es la fecha límite!' : 'Faltan ' + left + (left === 1 ? ' día' : ' días') + ' para el ' + fmt(dd).replace(/\.$/, '') + '.') + ' Días tachados: ' + nx + '.';
+  }
+  $('dlInfo').textContent = info; $('dl').value = S.deadline || '';
 }
 
 function render(){
@@ -274,6 +347,7 @@ function render(){
   $('listT').textContent = dm ? 'Movimientos del día' : 'Movimientos de la semana';
   $('q1').textContent = '+ Pasaje ' + money(S.fare);
   $('q2').textContent = '+ Ida y vuelta ' + money(S.fare*2);
+  renderCal();
 }
 
 const esc = s => (s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -306,13 +380,37 @@ $('next').onclick = () => { if (mode === 'dia'){ day = addDays(day,1); view = su
 $('mSem').onclick = () => { mode = 'semana'; S.mode = mode; save(); render(); };
 $('mDia').onclick = () => { mode = 'dia'; S.mode = mode; save(); if (iso(sunday(day)) !== iso(view)) day = new Date(view); render(); };
 $('days').onclick = e => { const b = e.target.closest('[data-d]'); if (b){ mode = 'dia'; S.mode = mode; save(); day = parse(b.dataset.d); view = sunday(day); render(); } };
+$('cal').onclick = e => { const b = e.target.closest('[data-c]'); if (b && xmode){ const k = b.dataset.c; if (S.crossed[k]) delete S.crossed[k]; else S.crossed[k] = true; save(); renderCal(); } else if (b){ goView('h'); mode = 'dia'; S.mode = mode; save(); day = parse(b.dataset.c); view = sunday(day); render(); } };
+const TT = {h:'Mi semana', c:'Calendario', s:'Dinero juntado', a:'Ajustes', y:'Semanas anteriores'};
+const drawer = $('drawer');
+const menu = o => { drawer.classList.toggle('open', o); $('scrim').hidden = !o; $('menuBtn').setAttribute('aria-expanded', o); };
+const goView = v => {
+  document.body.dataset.v = v; $('vTitle').textContent = TT[v];
+  drawer.querySelectorAll('[data-go]').forEach(b => b.className = b.dataset.go === v ? 'on' : '');
+  menu(false); if (v === 'c') renderCal();
+  const n = new Date(), el = v === 'c' && $('mo-' + n.getFullYear() + '-' + n.getMonth());
+  if (el && el.scrollIntoView) el.scrollIntoView(); else scrollTo(0,0);
+};
+$('menuBtn').onclick = () => menu(!drawer.classList.contains('open'));
+$('scrim').onclick = () => menu(false);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') menu(false); });
+drawer.onclick = e => { const b = e.target.closest('[data-go]'); if (b) goView(b.dataset.go); };
+$('cmV').onclick = () => { xmode = false; renderCal(); };
+$('cmX').onclick = () => { xmode = true; renderCal(); };
+$('dl').onchange = () => { S.deadline = $('dl').value || null; S.dlSet = true; save(); renderCal(); };
+let arm = 0;
+$('dlClr').onclick = () => {
+  const b = $('dlClr');
+  if (!arm){ b.textContent = '¿Seguro?'; arm = setTimeout(() => { arm = 0; b.textContent = 'Borrar tachados'; }, 3000); return; }
+  clearTimeout(arm); arm = 0; b.textContent = 'Borrar tachados'; S.crossed = {}; save(); renderCal();
+};
 $('list').onclick = e => {
   const id = e.target.dataset.del;
   if (id) { S.entries = S.entries.filter(x => String(x.id) !== id); save(); render(); }
 };
 $('hist').onclick = e => {
   const b = e.target.closest('[data-wk]');
-  if (b) { setWeek(parse(b.dataset.wk)); render(); scrollTo({top:0,behavior:'smooth'}); }
+  if (b) { setWeek(parse(b.dataset.wk)); render(); goView('h'); scrollTo({top:0,behavior:'smooth'}); }
 };
 $('cW').onchange = () => { S.weekly = Math.max(0, parseFloat($('cW').value) || 0); save(); render(); };
 $('cF').onchange = () => { S.fare = Math.max(0, parseFloat($('cF').value) || 0); save(); render(); };
