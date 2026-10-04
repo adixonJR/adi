@@ -91,6 +91,7 @@ body[data-v="h"] main>.vh,body[data-v="c"] main>.vc,body[data-v="s"] main>.vs,bo
 #drawer button.on{background:var(--ink);color:var(--bg)}
 .mh{margin:18px 0 0;font-size:1rem;text-transform:capitalize;scroll-margin-top:70px}
 .mh small{display:block;font-weight:400;color:var(--soft);font-size:.78rem;text-transform:none}
+.off,body[data-v] main>#sumCard.off{display:none}
 .calsum{display:flex;justify-content:space-between;margin:12px 0 0;font-size:.9rem}
 </style>
 </head>
@@ -126,6 +127,12 @@ body[data-v="h"] main>.vh,body[data-v="c"] main>.vc,body[data-v="s"] main>.vs,bo
       <div>Gastado<b id="sOut"></b></div>
     </div>
     <p class="hint" id="hint"></p>
+  </section>
+
+  <section class="card vh vs off" id="sumCard">
+    <h2>🎉 Terminó tu semana</h2>
+    <p id="sumTxt" style="margin:0 0 12px;font-size:.92rem"></p>
+    <div class="quick" style="margin-top:0"><button class="add" id="sumYes" style="width:auto">Sumar</button><button id="sumNo">Omitir</button></div>
   </section>
 
   <section class="card vc" id="calCard">
@@ -173,7 +180,7 @@ body[data-v="h"] main>.vh,body[data-v="c"] main>.vc,body[data-v="s"] main>.vs,bo
   <section class="card va">
     <h2>Ajustes</h2>
     <div class="cfg">
-      <div><label for="cW">Dinero de cada domingo</label><input id="cW" type="number" step="1" min="0"></div>
+      <div><label for="cW">Dinero de cada semana</label><input id="cW" type="number" step="1" min="0"></div>
       <div><label for="cF">Precio de un pasaje</label><input id="cF" type="number" step="0.10" min="0"></div>
     </div>
   </section>
@@ -187,7 +194,7 @@ body[data-v="h"] main>.vh,body[data-v="c"] main>.vc,body[data-v="s"] main>.vs,bo
 <script>
 const $ = id => document.getElementById(id);
 const KEY = 'mi-semana-v1';
-let S = {weekly:300, fare:1.5, entries:[], saved:0, savedAt:null, deadline:null, crossed:{}};
+let S = {weekly:300, fare:1.5, entries:[], saved:0, savedAt:null, deadline:null, crossed:{}, sums:{}};
 try { const r = JSON.parse(localStorage.getItem(KEY)); if (r) S = Object.assign(S, r); } catch(e){}
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e){} };
 
@@ -195,18 +202,19 @@ const money = n => 'S/ ' + n.toLocaleString('es-PE',{minimumFractionDigits:2,max
 const short = n => n.toLocaleString('es-PE',{maximumFractionDigits:2});
 const iso = d => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 const parse = s => { const [y,m,d] = s.split('-').map(Number); return new Date(y,m-1,d); };
-const sunday = d => { const x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); x.setDate(x.getDate()-x.getDay()); return x; };
+const wd = d => (d.getDay() + 6) % 7;
+const weekStart = d => { const x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); x.setDate(x.getDate() - wd(x)); return x; };
 const addDays = (d,n) => { const x = new Date(d); x.setDate(x.getDate()+n); return x; };
 const fmt = d => d.toLocaleDateString('es-PE',{day:'numeric',month:'short'});
 const hhmm = d => String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
-const DN = ['D','L','M','M','J','V','S'];
+const DN = ['L','M','M','J','V','S','D'];
 if (!S.dlSet && !S.deadline){ const n = new Date(); let y = n.getFullYear(); if (iso(n) > y + '-12-23') y++; S.deadline = y + '-12-23'; }
 
-const thisSunday = sunday(new Date());
-let view = new Date(thisSunday);
+const thisStart = weekStart(new Date());
+let view = new Date(thisStart);
 let mode = S.mode === 'dia' ? 'dia' : 'semana';
 let day = parse(iso(new Date()));
-const setWeek = s => { view = s; day = iso(s) === iso(thisSunday) ? parse(iso(new Date())) : new Date(s); };
+const setWeek = s => { view = s; day = iso(s) === iso(thisStart) ? parse(iso(new Date())) : new Date(s); };
 let type = 'gasto';
 let tmTouched = false;
 let xmode = false;
@@ -220,10 +228,10 @@ function weekData(sun){
 }
 
 function dayData(d){
-  const s0 = sunday(d), k = iso(d);
+  const s0 = weekStart(d), k = iso(d);
   const es = S.entries.filter(e => e.d >= iso(s0) && e.d <= iso(addDays(s0,6)));
   const bal = es.filter(e => e.d < k).reduce((x,e) => x + (e.t === 'propina' ? e.a : -e.a), S.weekly);
-  const daysLeft = 7 - d.getDay();
+  const daysLeft = 7 - wd(d);
   const allow = Math.max(0, bal / daysLeft);
   const td = es.filter(e => e.d === k);
   const sum = t => td.filter(e => e.t === t).reduce((x,e) => x + e.a, 0);
@@ -242,7 +250,7 @@ function renderCal(){
   let out = '';
   for (let c = new Date(a); c <= end; c = new Date(c.getFullYear(), c.getMonth()+1, 1)){
     const y = c.getFullYear(), m = c.getMonth(), n = new Date(y, m+1, 0).getDate();
-    let h = DN.map(x => `<div class="hd">${x}</div>`).join('') + '<div class="blank"></div>'.repeat(c.getDay());
+    let h = DN.map(x => `<div class="hd">${x}</div>`).join('') + '<div class="blank"></div>'.repeat(wd(c));
     let mg = 0, mp = 0;
     for (let i = 1; i <= n; i++){
       const k = iso(new Date(y,m,i)), t = tot[k];
@@ -266,7 +274,7 @@ function render(){
   const dm = mode === 'dia';
   $('mDia').className = dm ? 'on' : '';
   $('mSem').className = dm ? '' : 'on';
-  const isNow = iso(view) === iso(thisSunday);
+  const isNow = iso(view) === iso(thisStart);
   const w = weekData(view);
   let T = w, diff = 0;
   if (dm){
@@ -278,8 +286,8 @@ function render(){
     $('next').disabled = diff <= 0;
   } else {
     $('range').textContent = fmt(view) + ' – ' + fmt(addDays(view,6));
-    $('wk').textContent = isNow ? 'Esta semana' : (view > thisSunday ? 'Semana futura' : 'Semana pasada');
-    $('next').disabled = iso(view) >= iso(thisSunday);
+    $('wk').textContent = isNow ? 'Esta semana' : (view > thisStart ? 'Semana futura' : 'Semana pasada');
+    $('next').disabled = iso(view) >= iso(thisStart);
   }
 
   const base = dm ? T.total : w.total;
@@ -302,10 +310,10 @@ function render(){
     hint += T.left < 0 ? 'Ese día te pasaste por ' + money(-T.left) + ' y los días siguientes tendrán menos.'
           : 'Lo que no gastes hoy se reparte entre los días que faltan.';
   } else if (isNow){
-    const left = 7 - new Date().getDay();
+    const left = 7 - wd(new Date());
     hint = w.left < 0
       ? 'Te pasaste por ' + money(-w.left) + '. Mira qué gasto puedes recortar.'
-      : 'Puedes gastar hasta ' + money(w.left / left) + ' por día (' + left + (left === 1 ? ' día' : ' días') + ' hasta el sábado).';
+      : 'Puedes gastar hasta ' + money(w.left / left) + ' por día (' + left + (left === 1 ? ' día' : ' días') + ' hasta el domingo).';
   } else {
     hint = w.left < 0 ? 'Esa semana te pasaste por ' + money(-w.left) + '.' : 'Esa semana cerraste con ' + money(w.left) + ' de sobra.';
   }
@@ -313,10 +321,10 @@ function render(){
 
   // gráfico por día
   const per = Array(7).fill(0);
-  w.es.filter(e => e.t === 'gasto').forEach(e => per[parse(e.d).getDay()] += e.a);
+  w.es.filter(e => e.t === 'gasto').forEach(e => per[wd(parse(e.d))] += e.a);
   const max = Math.max(...per, 1);
   $('days').innerHTML = per.map((v,i) => {
-    const t = dm ? iso(addDays(view,i)) === iso(day) : isNow && i === new Date().getDay();
+    const t = dm ? iso(addDays(view,i)) === iso(day) : isNow && i === wd(new Date());
     return `<div data-d="${iso(addDays(view,i))}" class="${t?'today':''}" title="${money(v)}"><i style="height:${v/max*80}%"></i>${DN[i]}</div>`;
   }).join('');
 
@@ -335,7 +343,7 @@ function render(){
   // historial
   const hist = [];
   for (let i = 1; i <= 8; i++){
-    const s = addDays(thisSunday, -7*i);
+    const s = addDays(thisStart, -7*i);
     const d = weekData(s);
     if (d.es.length) hist.push({s, d});
   }
@@ -356,7 +364,7 @@ function addEntry(t, a, n, d, h){
   if (!(a > 0)) { $('amt').focus(); return; }
   S.entries.push({id: Date.now() + Math.random(), t, a: Math.round(a*100)/100, n, d, h: h || hhmm(new Date())});
   save();
-  day = parse(d); view = sunday(day);
+  day = parse(d); view = weekStart(day);
   render();
 }
 
@@ -375,12 +383,12 @@ $('add').onclick = () => {
 };
 $('q1').onclick = () => addEntry('gasto', S.fare, 'Pasaje', iso(mode === 'dia' ? day : new Date()));
 $('q2').onclick = () => addEntry('gasto', S.fare*2, 'Pasaje ida y vuelta', iso(mode === 'dia' ? day : new Date()));
-$('prev').onclick = () => { if (mode === 'dia'){ day = addDays(day,-1); view = sunday(day); } else setWeek(addDays(view,-7)); render(); };
-$('next').onclick = () => { if (mode === 'dia'){ day = addDays(day,1); view = sunday(day); } else setWeek(addDays(view,7)); render(); };
+$('prev').onclick = () => { if (mode === 'dia'){ day = addDays(day,-1); view = weekStart(day); } else setWeek(addDays(view,-7)); render(); };
+$('next').onclick = () => { if (mode === 'dia'){ day = addDays(day,1); view = weekStart(day); } else setWeek(addDays(view,7)); render(); };
 $('mSem').onclick = () => { mode = 'semana'; S.mode = mode; save(); render(); };
-$('mDia').onclick = () => { mode = 'dia'; S.mode = mode; save(); if (iso(sunday(day)) !== iso(view)) day = new Date(view); render(); };
-$('days').onclick = e => { const b = e.target.closest('[data-d]'); if (b){ mode = 'dia'; S.mode = mode; save(); day = parse(b.dataset.d); view = sunday(day); render(); } };
-$('cal').onclick = e => { const b = e.target.closest('[data-c]'); if (b && xmode){ const k = b.dataset.c; if (S.crossed[k]) delete S.crossed[k]; else S.crossed[k] = true; save(); renderCal(); } else if (b){ goView('h'); mode = 'dia'; S.mode = mode; save(); day = parse(b.dataset.c); view = sunday(day); render(); } };
+$('mDia').onclick = () => { mode = 'dia'; S.mode = mode; save(); if (iso(weekStart(day)) !== iso(view)) day = new Date(view); render(); };
+$('days').onclick = e => { const b = e.target.closest('[data-d]'); if (b){ mode = 'dia'; S.mode = mode; save(); day = parse(b.dataset.d); view = weekStart(day); render(); } };
+$('cal').onclick = e => { const b = e.target.closest('[data-c]'); if (b && xmode){ const k = b.dataset.c; if (S.crossed[k]) delete S.crossed[k]; else S.crossed[k] = true; save(); renderCal(); } else if (b){ goView('h'); mode = 'dia'; S.mode = mode; save(); day = parse(b.dataset.c); view = weekStart(day); render(); } };
 const TT = {h:'Mi semana', c:'Calendario', s:'Dinero juntado', a:'Ajustes', y:'Semanas anteriores'};
 const drawer = $('drawer');
 const menu = o => { drawer.classList.toggle('open', o); $('scrim').hidden = !o; $('menuBtn').setAttribute('aria-expanded', o); };
@@ -417,7 +425,26 @@ $('cF').onchange = () => { S.fare = Math.max(0, parseFloat($('cF').value) || 0);
 
 $('dt').value = iso(new Date());
 $('tm').oninput = () => { tmTouched = true; };
+function sumWeek(){
+  const n = new Date(), k = wd(n) === 6 && n.getHours() >= 23 ? iso(weekStart(n)) : wd(n) === 0 ? iso(addDays(weekStart(n), -7)) : null;
+  return k && !S.sums[k] ? k : null;
+}
+function renderSum(){
+  const k = sumWeek();
+  $('sumCard').classList.toggle('off', !k);
+  if (!k) return;
+  const a = parse(k);
+  $('sumTxt').textContent = 'Semana del ' + fmt(a) + ' al ' + fmt(addDays(a,6)).replace(/\.$/, '') + '. ¿Sumar ' + money(S.weekly) + ' a tu dinero juntado? Ahora tienes ' + money(S.saved) + '.';
+  $('sumYes').textContent = 'Sumar ' + money(S.weekly);
+}
+$('sumYes').onclick = () => {
+  const k = sumWeek(); if (!k) return;
+  S.sums[k] = true; S.saved = Math.round((S.saved + S.weekly) * 100) / 100; S.savedAt = new Date().toISOString();
+  save(); renderSaved(); renderSum(); goView('s');
+};
+$('sumNo').onclick = () => { const k = sumWeek(); if (k){ S.sums[k] = 'skip'; save(); renderSum(); } };
 function tick(){
+  renderSum();
   const n = new Date();
   $('now').textContent = n.toLocaleString('es-PE',{weekday:'long',day:'numeric',month:'long',hour:'2-digit',minute:'2-digit',second:'2-digit'});
   if (!tmTouched) $('tm').value = hhmm(n);
