@@ -82,13 +82,20 @@ h2{font-size:.95rem;margin:0 0 8px}
 .hist .h{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);font-size:.92rem;background:none;border-left:0;border-right:0;border-top:0;border-radius:0;width:100%;text-align:left}
 .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:12px}
 .cal .hd{text-align:center;font-size:.7rem;color:var(--soft)}
-.cal button{min-height:60px;padding:4px 1px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:1px;font-size:.62rem;line-height:1.25;overflow:hidden}
+.cal button{position:relative;min-height:64px;padding:16px 1px 4px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:1px;font-size:.62rem;line-height:1.25;overflow:hidden}
 .cal button b{font-size:.8rem}
 .cal .g{color:var(--bad)} .cal .p{color:var(--tip)} .cal .i{color:var(--ok)}
 .cal button.sel{border:2px solid var(--ink)}
 .cal button.tod b{color:var(--ok)}
 .cal .blank{visibility:hidden}
 .cal button.x{opacity:.45}.cal button.x b{text-decoration:line-through}.cal button.x b::after{content:' ✕';color:var(--bad);font-size:.65rem}.cal button.dl{border:2px solid var(--warn)}.goal{margin-top:12px;display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end}.goal button{padding:11px}.goal+p{margin:8px 0 0;font-size:.9rem}.cmode{margin:12px 0 0}
+.cmode{grid-template-columns:repeat(3,1fr)}
+.rate{margin:14px 0 0;padding:12px;border:1px solid var(--line);border-radius:12px;text-align:center}
+.rate p{margin:0 0 6px;font-size:.9rem;color:var(--soft);text-transform:capitalize}
+.stars{display:flex;justify-content:center;gap:4px}
+.stars button{border:0;padding:2px 6px;font-size:2.2rem;line-height:1;color:var(--line)}
+.stars button.on{color:var(--warn)}
+.cal .st{position:absolute;top:3px;right:4px;font-size:.58rem;line-height:1;font-weight:700;color:var(--warn)}
 main>section{display:none}
 body[data-v="h"] main>.vh,body[data-v="c"] main>.vc,body[data-v="s"] main>.vs,body[data-v="a"] main>.va,body[data-v="y"] main>.vy{display:block}
 .top{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:12px;margin:-16px -16px 14px;padding:10px 16px;background:var(--bg);border-bottom:1px solid var(--line)}
@@ -168,7 +175,7 @@ button:disabled{opacity:.35;cursor:default}
       <div>Propinas<b id="sTip"></b></div>
       <div>Otros ingresos<b id="sOth"></b></div>
       <div>Gastado<b id="sOut"></b></div>
-      <div class="tot">Total<b id="sTot"></b></div>
+      <div class="tot">Total líquido (propinas + otros ingresos − gastado)<b id="sTot"></b></div>
     </div>
     <p class="hint" id="hint"></p>
   </section>
@@ -182,7 +189,8 @@ button:disabled{opacity:.35;cursor:default}
   <section class="card vc" id="calCard">
     <div class="goal"><div><label for="dl">Fecha límite para juntar dinero</label><input id="dl" type="date"></div><button id="dlClr">Borrar tachados</button></div>
     <p id="dlInfo"></p>
-    <div class="mode cmode"><button id="cmV">Ver día</button><button id="cmX">Tachar días</button></div>
+    <div class="mode cmode"><button id="cmV">Ver día</button><button id="cmX">Tachar días</button><button id="cmR">⭐ Calificar</button></div>
+    <div class="rate" id="rate" hidden></div>
     <div id="cal"></div>
   </section>
 
@@ -240,7 +248,7 @@ button:disabled{opacity:.35;cursor:default}
 <script>
 const $ = id => document.getElementById(id);
 const KEY = 'mi-semana-v1';
-let S = {weekly:300, fare:1.5, entries:[], saved:0, savedAt:null, deadline:null, crossed:{}, sums:{}};
+let S = {weekly:300, fare:1.5, entries:[], saved:0, savedAt:null, deadline:null, crossed:{}, sums:{}, ratings:{}};
 try { const r = JSON.parse(localStorage.getItem(KEY)); if (r) S = Object.assign(S, r); } catch(e){}
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e){} };
 
@@ -265,7 +273,7 @@ let day = parse(iso(new Date()));
 const setWeek = s => { view = s; day = iso(s) === iso(thisStart) ? parse(iso(new Date())) : new Date(s); };
 let type = 'gasto';
 let tmTouched = false;
-let xmode = false;
+let xmode = false, rmode = false, rday = iso(new Date());
 
 function weekData(sun){
   const a = iso(sun), b = iso(addDays(sun,6));
@@ -291,7 +299,7 @@ function renderCal(){
   const td = parse(iso(new Date())), today = iso(td), tot = {};
   S.entries.forEach(e => { const o = tot[e.d] = tot[e.d] || {g:0,p:0,i:0}; o[CLS[e.t] || 'i'] += e.a; });
   let a = new Date(td.getFullYear(), td.getMonth(), 1);
-  const ks = Object.keys(tot).concat(Object.keys(S.crossed)).sort();
+  const ks = Object.keys(tot).concat(Object.keys(S.crossed), Object.keys(S.ratings)).sort();
   if (ks.length){ const f = parse(ks[0]), fm = new Date(f.getFullYear(), f.getMonth(), 1); if (fm < a) a = fm; }
   const dd = S.deadline ? parse(S.deadline) : new Date(td.getFullYear(), 11, 31);
   const z = dd > td ? dd : td, end = new Date(z.getFullYear(), z.getMonth(), 1);
@@ -301,15 +309,22 @@ function renderCal(){
     let h = DN.map(x => `<div class="hd">${x}</div>`).join('') + '<div class="blank"></div>'.repeat(wd(c));
     let mg = 0, mp = 0, mi = 0;
     for (let i = 1; i <= n; i++){
-      const k = iso(new Date(y,m,i)), t = tot[k];
+      const k = iso(new Date(y,m,i)), t = tot[k], r = S.ratings[k];
       if (t){ mg += t.g; mp += t.p; mi += t.i; }
-      const cls = (k === today ? 'tod ' : '') + (!xmode && mode === 'dia' && k === iso(day) ? 'sel ' : '') + (S.crossed[k] ? 'x ' : '') + (k === S.deadline ? 'dl' : '');
-      h += `<button class="${cls}" data-c="${k}"><b>${i}</b>` + (k === S.deadline ? '<span>🎯</span>' : '') + (t && t.g ? `<span class="g">−${short(t.g)}</span>` : '') + (t && t.p ? `<span class="p">+${short(t.p)}</span>` : '') + (t && t.i ? `<span class="i">+${short(t.i)}</span>` : '') + `</button>`;
+      const sel = rmode ? k === rday : (!xmode && mode === 'dia' && k === iso(day));
+      const cls = (k === today ? 'tod ' : '') + (sel ? 'sel ' : '') + (S.crossed[k] ? 'x ' : '') + (k === S.deadline ? 'dl' : '');
+      h += `<button class="${cls}" data-c="${k}"><b>${i}</b>` + (r ? `<span class="st">★${r}</span>` : '') + (k === S.deadline ? '<span>🎯</span>' : '') + (t && t.g ? `<span class="g">−${short(t.g)}</span>` : '') + (t && t.p ? `<span class="p">+${short(t.p)}</span>` : '') + (t && t.i ? `<span class="i">+${short(t.i)}</span>` : '') + `</button>`;
     }
     out += `<h3 class="mh" id="mo-${y}-${m}">${c.toLocaleDateString('es-PE',{month:'long',year:'numeric'})}<small>Gastado ${money(mg)} · Propinas ${money(mp)} · Otros ingresos ${money(mi)}</small></h3><div class="cal">${h}</div>`;
   }
   $('cal').innerHTML = out;
-  $('cmV').className = xmode ? '' : 'on'; $('cmX').className = xmode ? 'on' : '';
+  $('cmV').className = !xmode && !rmode ? 'on' : ''; $('cmX').className = xmode ? 'on' : ''; $('cmR').className = rmode ? 'on' : '';
+  const rb = $('rate'); rb.hidden = !rmode;
+  if (rmode){
+    const cur = S.ratings[rday] || 0;
+    rb.innerHTML = `<p>¿Cómo estuvo ${parse(rday).toLocaleDateString('es-PE',{weekday:'long',day:'numeric',month:'long'})}?</p><div class="stars">` +
+      [1,2,3,4,5].map(s => `<button data-s="${s}" class="${s <= cur ? 'on' : ''}" aria-label="${s} ${s === 1 ? 'estrella' : 'estrellas'}">★</button>`).join('') + `</div>`;
+  }
   let info = 'Elige una fecha límite para ir tachando los días.';
   if (S.deadline){
     const left = Math.round((dd - td) / 864e5), nx = Object.keys(S.crossed).filter(k => S.crossed[k]).length;
@@ -352,8 +367,9 @@ function render(){
   $('sTip').textContent = money(T.tips);
   $('sOth').textContent = money(T.inc);
   $('sOut').textContent = money(T.out);
-  $('sTot').textContent = money(T.left);
-  $('sTot').className = T.left < 0 ? 'bad' : 'ok';
+  const net = Math.round((T.tips + T.inc - T.out) * 100) / 100;
+  $('sTot').textContent = money(net);
+  $('sTot').className = net < 0 ? 'bad' : 'ok';
 
   let hint = '';
   if (dm){
@@ -384,7 +400,7 @@ function render(){
   $('days').innerHTML = both
     ? per.map((v,i) => `<div data-d="${iso(addDays(view,i))}" class="${isT(i)?'today':''}" title="Propinas ${money(perT[i])} · Gastos ${money(v)}"><span class="pair"><i class="t" style="--n:${i};height:${perT[i]/max2*80}px"></i><i class="g" style="--n:${i};height:${v/max2*80}px"></i></span>${DN[i]}</div>`).join('')
     : per.map((v,i) => `<div data-d="${iso(addDays(view,i))}" class="${isT(i)?'today':''}" title="${money(v)}"><i style="--n:${i};height:${v/max*80}%"></i>${DN[i]}</div>`).join('');
-  [['avail', money(T.left)], ['sTot', money(T.left)]].forEach(([id, txt]) => {
+  [['avail', money(T.left)], ['sTot', money(net)]].forEach(([id, txt]) => {
     const el = $(id); if (el.dataset.v && el.dataset.v !== txt){ el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
     el.dataset.v = txt;
   });
@@ -455,7 +471,19 @@ $('mDia').onclick = () => { mode = 'dia'; S.mode = mode; save(); if (iso(weekSta
 const pickDay = e => { const b = e.target.closest('[data-d]'); if (b){ mode = 'dia'; S.mode = mode; save(); day = parse(b.dataset.d); view = weekStart(day); render(); } };
 $('days').onclick = pickDay;
 $('cTog').onclick = () => { S.chart = S.chart === 'pt' ? 'g' : 'pt'; save(); render(); };
-$('cal').onclick = e => { const b = e.target.closest('[data-c]'); if (b && xmode){ const k = b.dataset.c; if (S.crossed[k]) delete S.crossed[k]; else S.crossed[k] = true; save(); renderCal(); } else if (b){ goView('h'); mode = 'dia'; S.mode = mode; save(); day = parse(b.dataset.c); view = weekStart(day); render(); } };
+$('cal').onclick = e => {
+  const b = e.target.closest('[data-c]'); if (!b) return;
+  const k = b.dataset.c;
+  if (rmode){ rday = k; renderCal(); }
+  else if (xmode){ if (S.crossed[k]) delete S.crossed[k]; else S.crossed[k] = true; save(); renderCal(); }
+  else { goView('h'); mode = 'dia'; S.mode = mode; save(); day = parse(k); view = weekStart(day); render(); }
+};
+$('rate').onclick = e => {
+  const b = e.target.closest('[data-s]'); if (!b) return;
+  const s = Number(b.dataset.s);
+  if (S.ratings[rday] === s) delete S.ratings[rday]; else S.ratings[rday] = s;
+  save(); renderCal();
+};
 const TT = {h:'Mi semana', c:'Calendario', s:'Dinero juntado', a:'Ajustes', y:'Semanas anteriores'};
 const drawer = $('drawer');
 const menu = o => { drawer.classList.toggle('open', o); $('scrim').hidden = !o; $('menuBtn').setAttribute('aria-expanded', o); };
@@ -470,8 +498,9 @@ $('menuBtn').onclick = () => menu(!drawer.classList.contains('open'));
 $('scrim').onclick = () => menu(false);
 document.addEventListener('keydown', e => { if (e.key === 'Escape') menu(false); });
 drawer.onclick = e => { const b = e.target.closest('[data-go]'); if (b) goView(b.dataset.go); };
-$('cmV').onclick = () => { xmode = false; renderCal(); };
-$('cmX').onclick = () => { xmode = true; renderCal(); };
+$('cmV').onclick = () => { xmode = false; rmode = false; renderCal(); };
+$('cmX').onclick = () => { xmode = true; rmode = false; renderCal(); };
+$('cmR').onclick = () => { rmode = true; xmode = false; renderCal(); };
 $('dl').onchange = () => { S.deadline = $('dl').value || null; S.dlSet = true; save(); renderCal(); };
 let arm = 0;
 $('dlClr').onclick = () => {
