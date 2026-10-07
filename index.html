@@ -29,14 +29,18 @@ h1{font-size:1.1rem;margin:0}
 .bar{height:12px;border-radius:99px;background:var(--line);overflow:hidden;margin:12px 0 6px}
 .bar i{display:block;height:100%;background:var(--ok);transition:width .3s}
 .bar i.warn{background:var(--warn)} .bar i.bad{background:var(--bad)}
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px 8px;margin-top:10px}
 .stats div{font-size:.8rem;color:var(--soft)}
 .stats b{display:block;font-size:1.05rem;color:var(--ink)}
+.stats .tot{grid-column:1/-1;border-top:1px solid var(--line);padding-top:10px}
+.stats .tot b{font-size:1.5rem}
+.stats b.ok{color:var(--ok)} .stats b.bad{color:var(--bad)}
 .hint{margin:10px 0 0;font-size:.92rem}
-.seg{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px}
-.seg button{padding:10px;border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:10px;font-weight:600}
+.seg{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px}
+.seg button{padding:10px 4px;border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:10px;font-weight:600;font-size:.9rem}
 .seg button.on.g{background:var(--bad);border-color:var(--bad);color:#fff}
 .seg button.on.p{background:var(--tip);border-color:var(--tip);color:#fff}
+.seg button.on.i{background:var(--ok);border-color:var(--ok);color:#fff}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
 input{width:100%;padding:11px;border:1px solid var(--line);border-radius:10px;background:transparent;color:var(--ink);font:inherit}
 label{font-size:.8rem;color:var(--soft);display:block;margin-bottom:3px}
@@ -58,13 +62,20 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--tip);outline-of
 .days div[data-d]{cursor:pointer}
 .days div{display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;font-size:.7rem;color:var(--soft)}
 .days i{display:block;width:100%;background:var(--ok);border-radius:6px 6px 0 0;min-height:2px}
+.days .pair{display:flex;align-items:flex-end;gap:2px;width:100%;height:auto}
+.days .pair i{flex:1;width:auto}
+.days .pair i.t{background:var(--tip)}
+.days .pair i.g{background:var(--bad)}
 .days .today{color:var(--ink);font-weight:700}
+.legend{display:flex;gap:14px;margin-top:10px;font-size:.8rem;color:var(--soft)}
+.legend span::before{content:'';display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;background:var(--tip)}
+.legend span.g::before{background:var(--bad)}
 h2{font-size:.95rem;margin:0 0 8px}
 .day{margin-top:10px;font-size:.8rem;color:var(--soft);font-weight:700}
 .item{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line)}
 .item span{flex:1}
 .item .m{font-weight:700}
-.item .m.g{color:var(--bad)} .item .m.p{color:var(--tip)}
+.item .m.g{color:var(--bad)} .item .m.p{color:var(--tip)} .item .m.i{color:var(--ok)}
 .item button{border:0;color:var(--soft);padding:4px 8px}
 .empty{color:var(--soft);font-size:.92rem;margin:0}
 .cfg{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -73,7 +84,7 @@ h2{font-size:.95rem;margin:0 0 8px}
 .cal .hd{text-align:center;font-size:.7rem;color:var(--soft)}
 .cal button{min-height:60px;padding:4px 1px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:1px;font-size:.62rem;line-height:1.25;overflow:hidden}
 .cal button b{font-size:.8rem}
-.cal .g{color:var(--bad)} .cal .p{color:var(--tip)}
+.cal .g{color:var(--bad)} .cal .p{color:var(--tip)} .cal .i{color:var(--ok)}
 .cal button.sel{border:2px solid var(--ink)}
 .cal button.tod b{color:var(--ok)}
 .cal .blank{visibility:hidden}
@@ -93,6 +104,37 @@ body[data-v="h"] main>.vh,body[data-v="c"] main>.vc,body[data-v="s"] main>.vs,bo
 .mh small{display:block;font-weight:400;color:var(--soft);font-size:.78rem;text-transform:none}
 .off,body[data-v] main>#sumCard.off{display:none}
 .calsum{display:flex;justify-content:space-between;margin:12px 0 0;font-size:.9rem}
+.legend[hidden]{display:none}
+.chead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.chead h2{margin:0}
+.chip{padding:4px 10px;font-size:.75rem;font-weight:600;border-radius:99px;color:var(--soft)}
+.chip.on{background:var(--tip);border-color:var(--tip);color:#fff}
+/* efectos */
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes grow{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@keyframes slide{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:none}}
+@keyframes pop{0%{transform:scale(.9)}60%{transform:scale(1.06)}100%{transform:scale(1)}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+main>section{animation:rise .45s ease both}
+main>section:nth-child(2){animation-delay:.05s}
+main>section:nth-child(5){animation-delay:.08s}
+.days i{transform-origin:bottom;animation:grow .55s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--n,0) * 45ms)}
+.days div[data-d]{transition:transform .15s}
+.days div[data-d]:hover{transform:translateY(-3px)}
+.days div[data-d]:hover i{filter:brightness(1.15)}
+.item{animation:slide .3s ease both}
+.hero .big.pop,.stats b.pop{animation:pop .35s ease}
+button{transition:transform .12s,background-color .2s,border-color .2s,color .2s,opacity .2s}
+button:not(:disabled):active{transform:scale(.95)}
+button:disabled{opacity:.35;cursor:default}
+.seg button:not(.on):hover,.mode button:not(.on):hover,.quick button:hover,.cal button:hover{background:var(--line)}
+.add:hover{filter:brightness(1.15)}
+.cal button{transition:transform .12s,background-color .2s,opacity .2s}
+.cal button:active{transform:scale(.9)}
+#drawer button:hover:not(.on){background:var(--line)}
+#scrim{animation:fade .2s ease}
+.bar i{transition:width .5s cubic-bezier(.2,.8,.2,1),background-color .3s}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body data-v="h">
@@ -124,7 +166,9 @@ body[data-v="h"] main>.vh,body[data-v="c"] main>.vc,body[data-v="s"] main>.vs,bo
     <div class="stats">
       <div><span id="sInL">Recibido</span><b id="sIn"></b></div>
       <div>Propinas<b id="sTip"></b></div>
+      <div>Otros ingresos<b id="sOth"></b></div>
       <div>Gastado<b id="sOut"></b></div>
+      <div class="tot">Total<b id="sTot"></b></div>
     </div>
     <p class="hint" id="hint"></p>
   </section>
@@ -153,6 +197,7 @@ body[data-v="h"] main>.vh,body[data-v="c"] main>.vc,body[data-v="s"] main>.vs,bo
     <div class="seg">
       <button id="tG" class="on g">Gasto</button>
       <button id="tP" class="p">Propina</button>
+      <button id="tI" class="i">Otro ingreso</button>
     </div>
     <div class="row">
       <div><label for="amt">Monto (S/)</label><input id="amt" type="number" inputmode="decimal" step="0.10" min="0" placeholder="0.00"></div>
@@ -168,8 +213,9 @@ body[data-v="h"] main>.vh,body[data-v="c"] main>.vc,body[data-v="s"] main>.vs,bo
   </section>
 
   <section class="card vh">
-    <h2>Gasto por día</h2>
+    <div class="chead"><h2 id="chartT">Gasto por día</h2><button id="cTog" class="chip" type="button"></button></div>
     <div class="days" id="days"></div>
+    <div class="legend" id="legend" hidden><span>Propinas</span><span class="g">Gastos</span></div>
   </section>
 
   <section class="card vh">
@@ -208,6 +254,8 @@ const addDays = (d,n) => { const x = new Date(d); x.setDate(x.getDate()+n); retu
 const fmt = d => d.toLocaleDateString('es-PE',{day:'numeric',month:'short'});
 const hhmm = d => String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
 const DN = ['L','M','M','J','V','S','D'];
+const LBL = {gasto:'Gasto', propina:'Propina', ingreso:'Ingreso'};
+const CLS = {gasto:'g', propina:'p', ingreso:'i'};
 if (!S.dlSet && !S.deadline){ const n = new Date(); let y = n.getFullYear(); if (iso(n) > y + '-12-23') y++; S.deadline = y + '-12-23'; }
 
 const thisStart = weekStart(new Date());
@@ -223,25 +271,25 @@ function weekData(sun){
   const a = iso(sun), b = iso(addDays(sun,6));
   const es = S.entries.filter(e => e.d >= a && e.d <= b);
   const sum = t => es.filter(e => e.t === t).reduce((s,e) => s + e.a, 0);
-  const tips = sum('propina'), out = sum('gasto');
-  return {es, tips, out, total: S.weekly + tips, left: S.weekly + tips - out};
+  const tips = sum('propina'), inc = sum('ingreso'), out = sum('gasto');
+  return {es, tips, inc, out, total: S.weekly + tips + inc, left: S.weekly + tips + inc - out};
 }
 
 function dayData(d){
   const s0 = weekStart(d), k = iso(d);
   const es = S.entries.filter(e => e.d >= iso(s0) && e.d <= iso(addDays(s0,6)));
-  const bal = es.filter(e => e.d < k).reduce((x,e) => x + (e.t === 'propina' ? e.a : -e.a), S.weekly);
+  const bal = es.filter(e => e.d < k).reduce((x,e) => x + (e.t === 'gasto' ? -e.a : e.a), S.weekly);
   const daysLeft = 7 - wd(d);
   const allow = Math.max(0, bal / daysLeft);
   const td = es.filter(e => e.d === k);
   const sum = t => td.filter(e => e.t === t).reduce((x,e) => x + e.a, 0);
-  const tips = sum('propina'), out = sum('gasto');
-  return {es: td, allow, tips, out, total: allow + tips, left: allow + tips - out, daysLeft};
+  const tips = sum('propina'), inc = sum('ingreso'), out = sum('gasto');
+  return {es: td, allow, tips, inc, out, total: allow + tips + inc, left: allow + tips + inc - out, daysLeft};
 }
 
 function renderCal(){
   const td = parse(iso(new Date())), today = iso(td), tot = {};
-  S.entries.forEach(e => { const o = tot[e.d] = tot[e.d] || {g:0,p:0}; o[e.t === 'gasto' ? 'g' : 'p'] += e.a; });
+  S.entries.forEach(e => { const o = tot[e.d] = tot[e.d] || {g:0,p:0,i:0}; o[CLS[e.t] || 'i'] += e.a; });
   let a = new Date(td.getFullYear(), td.getMonth(), 1);
   const ks = Object.keys(tot).concat(Object.keys(S.crossed)).sort();
   if (ks.length){ const f = parse(ks[0]), fm = new Date(f.getFullYear(), f.getMonth(), 1); if (fm < a) a = fm; }
@@ -251,14 +299,14 @@ function renderCal(){
   for (let c = new Date(a); c <= end; c = new Date(c.getFullYear(), c.getMonth()+1, 1)){
     const y = c.getFullYear(), m = c.getMonth(), n = new Date(y, m+1, 0).getDate();
     let h = DN.map(x => `<div class="hd">${x}</div>`).join('') + '<div class="blank"></div>'.repeat(wd(c));
-    let mg = 0, mp = 0;
+    let mg = 0, mp = 0, mi = 0;
     for (let i = 1; i <= n; i++){
       const k = iso(new Date(y,m,i)), t = tot[k];
-      if (t){ mg += t.g; mp += t.p; }
+      if (t){ mg += t.g; mp += t.p; mi += t.i; }
       const cls = (k === today ? 'tod ' : '') + (!xmode && mode === 'dia' && k === iso(day) ? 'sel ' : '') + (S.crossed[k] ? 'x ' : '') + (k === S.deadline ? 'dl' : '');
-      h += `<button class="${cls}" data-c="${k}"><b>${i}</b>` + (k === S.deadline ? '<span>🎯</span>' : '') + (t && t.g ? `<span class="g">−${short(t.g)}</span>` : '') + (t && t.p ? `<span class="p">+${short(t.p)}</span>` : '') + `</button>`;
+      h += `<button class="${cls}" data-c="${k}"><b>${i}</b>` + (k === S.deadline ? '<span>🎯</span>' : '') + (t && t.g ? `<span class="g">−${short(t.g)}</span>` : '') + (t && t.p ? `<span class="p">+${short(t.p)}</span>` : '') + (t && t.i ? `<span class="i">+${short(t.i)}</span>` : '') + `</button>`;
     }
-    out += `<h3 class="mh" id="mo-${y}-${m}">${c.toLocaleDateString('es-PE',{month:'long',year:'numeric'})}<small>Gastado ${money(mg)} · Propinas ${money(mp)}</small></h3><div class="cal">${h}</div>`;
+    out += `<h3 class="mh" id="mo-${y}-${m}">${c.toLocaleDateString('es-PE',{month:'long',year:'numeric'})}<small>Gastado ${money(mg)} · Propinas ${money(mp)} · Otros ingresos ${money(mi)}</small></h3><div class="cal">${h}</div>`;
   }
   $('cal').innerHTML = out;
   $('cmV').className = xmode ? '' : 'on'; $('cmX').className = xmode ? 'on' : '';
@@ -302,7 +350,10 @@ function render(){
   $('sInL').textContent = dm ? 'Para el día' : 'Recibido';
   $('sIn').textContent = money(dm ? T.allow : S.weekly);
   $('sTip').textContent = money(T.tips);
+  $('sOth').textContent = money(T.inc);
   $('sOut').textContent = money(T.out);
+  $('sTot').textContent = money(T.left);
+  $('sTot').className = T.left < 0 ? 'bad' : 'ok';
 
   let hint = '';
   if (dm){
@@ -319,14 +370,24 @@ function render(){
   }
   $('hint').textContent = hint;
 
-  // gráfico por día
-  const per = Array(7).fill(0);
-  w.es.filter(e => e.t === 'gasto').forEach(e => per[wd(parse(e.d))] += e.a);
-  const max = Math.max(...per, 1);
-  $('days').innerHTML = per.map((v,i) => {
-    const t = dm ? iso(addDays(view,i)) === iso(day) : isNow && i === wd(new Date());
-    return `<div data-d="${iso(addDays(view,i))}" class="${t?'today':''}" title="${money(v)}"><i style="height:${v/max*80}%"></i>${DN[i]}</div>`;
-  }).join('');
+  // gráficos por día
+  const per = Array(7).fill(0), perT = Array(7).fill(0);
+  w.es.forEach(e => { const i = wd(parse(e.d)); if (e.t === 'gasto') per[i] += e.a; else if (e.t === 'propina') perT[i] += e.a; });
+  const max = Math.max(...per, 1), max2 = Math.max(...per, ...perT, 1);
+  const isT = i => dm ? iso(addDays(view,i)) === iso(day) : isNow && i === wd(new Date());
+  const both = S.chart === 'pt';
+  $('cTog').className = 'chip' + (both ? ' on' : '');
+  $('cTog').textContent = both ? '✓ Propinas' : '+ Propinas';
+  $('cTog').setAttribute('aria-pressed', both);
+  $('chartT').textContent = both ? 'Propinas y gastos por día' : 'Gasto por día';
+  $('legend').hidden = !both;
+  $('days').innerHTML = both
+    ? per.map((v,i) => `<div data-d="${iso(addDays(view,i))}" class="${isT(i)?'today':''}" title="Propinas ${money(perT[i])} · Gastos ${money(v)}"><span class="pair"><i class="t" style="--n:${i};height:${perT[i]/max2*80}px"></i><i class="g" style="--n:${i};height:${v/max2*80}px"></i></span>${DN[i]}</div>`).join('')
+    : per.map((v,i) => `<div data-d="${iso(addDays(view,i))}" class="${isT(i)?'today':''}" title="${money(v)}"><i style="--n:${i};height:${v/max*80}%"></i>${DN[i]}</div>`).join('');
+  [['avail', money(T.left)], ['sTot', money(T.left)]].forEach(([id, txt]) => {
+    const el = $(id); if (el.dataset.v && el.dataset.v !== txt){ el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
+    el.dataset.v = txt;
+  });
 
   // lista
   const by = {};
@@ -335,10 +396,10 @@ function render(){
   $('list').innerHTML = keys.length ?  keys.map(k => {
     const d = parse(k).toLocaleDateString('es-PE',{weekday:'long',day:'numeric',month:'short'});
     return `<div class="day">${d}</div>` + by[k].slice().sort((a,b) => (b.h||'').localeCompare(a.h||'')).map(e =>
-      `<div class="item"><small>${e.h || ''}</small><span>${esc(e.n) || (e.t==='gasto'?'Gasto':'Propina')}</span>
-       <span class="m ${e.t==='gasto'?'g':'p'}" style="flex:none">${e.t==='gasto'?'−':'+'}${money(e.a)}</span>
+      `<div class="item"><small>${e.h || ''}</small><span>${esc(e.n) || LBL[e.t]}</span>
+       <span class="m ${CLS[e.t]}" style="flex:none">${e.t==='gasto'?'−':'+'}${money(e.a)}</span>
        <button data-del="${e.id}" aria-label="Borrar">✕</button></div>`).join('');
-  }).join('') : '<p class="empty">' + (dm ? 'Nada anotado este día.' : 'Aún no hay movimientos. Anota tu primer gasto o propina arriba.') + '</p>';
+  }).join('') : '<p class="empty">' + (dm ? 'Nada anotado este día.' : 'Aún no hay movimientos. Anota tu primer gasto o ingreso arriba.') + '</p>';
 
   // historial
   const hist = [];
@@ -371,12 +432,16 @@ function addEntry(t, a, n, d, h){
 function setType(t){
   type = t;
   $('tG').className = t === 'gasto' ? 'on g' : '';
+  $('tP').className = t === 'propina' ? 'on p' : 'p';
+  $('tI').className = t === 'ingreso' ? 'on i' : 'i';
   $('tP').className = t === 'propina' ? 'on p' : '';
-  $('add').textContent = t === 'gasto' ? 'Guardar gasto' : 'Guardar propina';
+  $('tI').className = t === 'ingreso' ? 'on i' : '';
+  $('add').textContent = 'Guardar ' + LBL[t].toLowerCase();
 }
 
 $('tG').onclick = () => setType('gasto');
 $('tP').onclick = () => setType('propina');
+$('tI').onclick = () => setType('ingreso');
 $('add').onclick = () => {
   addEntry(type, parseFloat($('amt').value), $('note').value.trim(), $('dt').value || iso(new Date()), $('tm').value);
   $('amt').value = ''; $('note').value = ''; tmTouched = false; tick();
@@ -387,7 +452,9 @@ $('prev').onclick = () => { if (mode === 'dia'){ day = addDays(day,-1); view = w
 $('next').onclick = () => { if (mode === 'dia'){ day = addDays(day,1); view = weekStart(day); } else setWeek(addDays(view,7)); render(); };
 $('mSem').onclick = () => { mode = 'semana'; S.mode = mode; save(); render(); };
 $('mDia').onclick = () => { mode = 'dia'; S.mode = mode; save(); if (iso(weekStart(day)) !== iso(view)) day = new Date(view); render(); };
-$('days').onclick = e => { const b = e.target.closest('[data-d]'); if (b){ mode = 'dia'; S.mode = mode; save(); day = parse(b.dataset.d); view = weekStart(day); render(); } };
+const pickDay = e => { const b = e.target.closest('[data-d]'); if (b){ mode = 'dia'; S.mode = mode; save(); day = parse(b.dataset.d); view = weekStart(day); render(); } };
+$('days').onclick = pickDay;
+$('cTog').onclick = () => { S.chart = S.chart === 'pt' ? 'g' : 'pt'; save(); render(); };
 $('cal').onclick = e => { const b = e.target.closest('[data-c]'); if (b && xmode){ const k = b.dataset.c; if (S.crossed[k]) delete S.crossed[k]; else S.crossed[k] = true; save(); renderCal(); } else if (b){ goView('h'); mode = 'dia'; S.mode = mode; save(); day = parse(b.dataset.c); view = weekStart(day); render(); } };
 const TT = {h:'Mi semana', c:'Calendario', s:'Dinero juntado', a:'Ajustes', y:'Semanas anteriores'};
 const drawer = $('drawer');
